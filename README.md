@@ -6,5 +6,14 @@ Our vision of a ritual game.
 Collaborators include:
 
 John Gale
-Earnest Lipford
+Ernest Lipford
 Christina Wisneski
+Alex 
+James Morris
+Jarrod Phillips
+John Sensei
+Leif Hetland
+Eric Schiang
+Javin
+Carmen Vazque
+
