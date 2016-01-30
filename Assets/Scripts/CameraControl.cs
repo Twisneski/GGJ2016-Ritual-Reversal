@@ -16,9 +16,11 @@ public class CameraControl : MonoBehaviour {
 	}
 
 	private bool CheckTargetDistance() {
-		Vector2 targetVector = FollowTarget.position - transform.position;
-		float distanceToTarget = targetVector.magnitude;
-		return distanceToTarget > XFollowDistance || distanceToTarget > YFollowDistance;
+		//Vector2 targetVector = FollowTarget.position - transform.position;
+		float xDelta = Mathf.Abs(FollowTarget.position.x - transform.position.x);
+		float yDelta = Mathf.Abs(FollowTarget.position.y - transform.position.y);
+		//float distanceToTarget = targetVector.magnitude;
+		return xDelta> XFollowDistance || yDelta > YFollowDistance;
 	}
 
 	private void MoveTowardsTarget() {

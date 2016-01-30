@@ -9,38 +9,102 @@ public class CharacterMovement : MonoBehaviour {
 	private Vector2 ForceVector;
 	public float JumpForce;
 	public bool IsMoving;
-	public bool Grounded;
+	public bool IsClimbing;
+	public bool IsWallAhead;
+	public bool IsWallLeft;
+	public bool IsWallRight;
+	public bool IsGrounded;
+	public bool IsDead;
 	public Rigidbody2D CharacterRigidbody;
 	private bool Jump;
 	public float GroundCheckDistance;
+	public float WallCheckDistance;
+	public Transform GroundCheckLeft;
+	public Transform GroundCheckRight;
+	public Transform WallCheckRightBottom;
+	public Transform WallCheckLeftBottom;
+	public Transform WallCheckRightTop;
+	public Transform WallCheckLeftTop;
+	public SpriteRenderer CharacterSprite;
+	public Animator CharacterAnimator;
 	
+	/*void Start() {
+		CharacterAnimator.SetBool("Grounded" true);
+	}*/
+
 	// Update is called once per frame
 	void Update () {
+		IsGrounded = CheckGrounded();
+		IsWallLeft = CheckWallLeft();
+		IsWallRight = CheckWallRight();
+		IsWallAhead = IsWallLeft || IsWallRight;
 		CheckMoveInput();
+		SetAnimationVariables();
 	}
 
 	void FixedUpdate() {
-		Grounded = CheckGrounded();
 
-		if (IsMoving) {
+		if (IsMoving && !IsDead) {
 			MoveCharacter();
 		}
 	}
 
-	private void CheckMoveInput() {
-		if (Input.GetKey(KeyCode.A)) {
-			IsMoving = true;
-			ForceVector = new Vector2(-Force, 0);
+	private void SetAnimationVariables() {
+		if (IsMoving) {
+			CharacterAnimator.SetBool("Moving", true);
 		}
-		else if (Input.GetKey(KeyCode.D)) {
+		else {
+			CharacterAnimator.SetBool("Moving", false);
+		}
+
+		if (IsGrounded) {
+			CharacterAnimator.SetBool("Grounded", true);
+		}
+		else if (IsClimbing) {
+			CharacterAnimator.SetBool("Grounded", false);
+		}
+		else {
+			CharacterAnimator.SetBool("Grounded", false);
+		}
+	}
+
+	private void CheckMoveInput() {
+		if (!IsDead && Input.GetKey(KeyCode.A)) {
 			IsMoving = true;
-			ForceVector = new Vector2(Force, 0);
+			if (!IsWallLeft) {
+				ForceVector = new Vector2(-Force, 0);
+				if (IsClimbing) {
+					IsClimbing = false;
+					CharacterRigidbody.gravityScale = 2;
+				}
+			}
+			else {
+				IsClimbing = true;
+			}
+			CharacterSprite.flipX = false;
+		}
+		else if (!IsDead && Input.GetKey(KeyCode.D)) {
+			IsMoving = true;
+			if (!IsWallRight) {
+				ForceVector = new Vector2(Force, 0);
+				if (IsClimbing) {
+					IsClimbing = false;
+					CharacterRigidbody.gravityScale = 2;
+				}
+
+			}
+			else {
+				IsClimbing = true;
+			}
+			CharacterSprite.flipX = true;
 		}
 		else {
 			IsMoving = false;
+			IsClimbing = false;
+			CharacterRigidbody.gravityScale = 2;
 		}
 
-		if (Grounded && Input.GetKeyDown(KeyCode.Space)) {
+		if (IsGrounded && Input.GetKeyDown(KeyCode.Space)) {
 			Jump = true;
 			if (IsMoving) {
 				ForceVector.y = JumpForce;
@@ -50,13 +114,28 @@ public class CharacterMovement : MonoBehaviour {
 				IsMoving = true;
 			}
 		}
+		if (IsWallAhead && IsClimbing) {
+			if (Input.GetKey(KeyCode.W)) {
+				CharacterRigidbody.gravityScale = 2;
+				ForceVector = new Vector2(0, Force);
+			}
+			else if (Input.GetKey(KeyCode.S)) {
+				CharacterRigidbody.gravityScale = 2;
+				ForceVector = new Vector2(0, -Force/2);
+			}
+			else {
+				CharacterRigidbody.gravityScale = 0;
+				CharacterRigidbody.velocity = Vector2.zero;
+				ForceVector = Vector2.zero;
+			}
+		}
 	}
 
 	private void MoveCharacter() {
-		if(!Jump && Grounded && CharacterRigidbody.velocity.magnitude < MaxGroundedVelocity) {
+		if(!Jump && IsGrounded && Mathf.Abs(CharacterRigidbody.velocity.x) < MaxGroundedVelocity) {
 			CharacterRigidbody.AddForce(ForceVector);
 		}
-		else if(!Grounded && CharacterRigidbody.velocity.magnitude < MaxFloatingVelocity) {
+		else if(!IsGrounded && Mathf.Abs(CharacterRigidbody.velocity.x) < MaxFloatingVelocity) {
 			CharacterRigidbody.AddForce(ForceVector);
 		}
 		else if (Jump) {
@@ -66,6 +145,22 @@ public class CharacterMovement : MonoBehaviour {
 	}
 
 	private bool CheckGrounded() {
-		return (Physics2D.Raycast(transform.position, Vector2.down, GroundCheckDistance, 1<<8) || Physics2D.Raycast(transform.position - new Vector3(0.25f, 0), Vector2.down, GroundCheckDistance, 1 << 8) || Physics2D.Raycast(transform.position + new Vector3(0.25f, 0), Vector2.down, GroundCheckDistance, 1 << 8));
+		return (Physics2D.Raycast(GroundCheckRight.position, Vector2.down, GroundCheckDistance, 1<<8) || Physics2D.Raycast(GroundCheckLeft.position, Vector2.down, GroundCheckDistance, 1 << 8));
+	}
+
+	private bool CheckWall() {
+		return CheckWallLeft() || CheckWallRight();
+	}
+	private bool CheckWallRight() {
+		return Physics2D.Raycast(WallCheckRightBottom.position, Vector2.right, WallCheckDistance, 1 << 8) || Physics2D.Raycast(WallCheckRightTop.position, Vector2.right, WallCheckDistance, 1 << 8);
+    }
+
+	private bool CheckWallLeft() {
+		return Physics2D.Raycast(WallCheckLeftBottom.position, Vector2.left, WallCheckDistance, 1 << 8) || Physics2D.Raycast(WallCheckLeftTop.position, Vector2.left, WallCheckDistance, 1 << 8);
+	}
+
+	public void KillPlayer() {
+		IsDead = true;
+		CharacterAnimator.SetTrigger("Dead");
 	}
 }
