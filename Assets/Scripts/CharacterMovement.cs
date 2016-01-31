@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class CharacterMovement : MonoBehaviour {
 
@@ -7,6 +8,7 @@ public class CharacterMovement : MonoBehaviour {
 	public float MaxGroundedVelocity;
 	public float MaxFloatingVelocity;
 	private Vector2 ForceVector;
+	private Vector2 JumpVector;
 	public float JumpForce;
 	public bool IsMoving;
 	public bool IsClimbing;
@@ -15,6 +17,7 @@ public class CharacterMovement : MonoBehaviour {
 	public bool IsWallRight;
 	public bool IsGrounded;
 	public bool IsDead;
+	public bool IsReallyDead;
 	public Rigidbody2D CharacterRigidbody;
 	private bool Jump;
 	public float GroundCheckDistance;
@@ -28,9 +31,9 @@ public class CharacterMovement : MonoBehaviour {
 	public SpriteRenderer CharacterSprite;
 	public Animator CharacterAnimator;
 	
-	/*void Start() {
-		CharacterAnimator.SetBool("Grounded" true);
-	}*/
+	void Start() {
+		JumpVector = new Vector2(0, JumpForce);
+	}
 
 	// Update is called once per frame
 	void Update () {
@@ -40,12 +43,25 @@ public class CharacterMovement : MonoBehaviour {
 		IsWallAhead = IsWallLeft || IsWallRight;
 		CheckMoveInput();
 		SetAnimationVariables();
+		CheckAttackInput();
 	}
 
 	void FixedUpdate() {
 
 		if (IsMoving && !IsDead) {
 			MoveCharacter();
+		}
+		else if (IsReallyDead && Input.anyKeyDown) {
+			SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+		}
+	}
+
+	public void FinishedDying() {
+		IsReallyDead = true;
+	}
+	private void CheckAttackInput() {
+		if (Input.GetKeyDown(KeyCode.E)) {
+			Attack();
 		}
 	}
 
@@ -81,11 +97,12 @@ public class CharacterMovement : MonoBehaviour {
 			else {
 				IsClimbing = true;
 			}
-			CharacterSprite.flipX = false;
+			//CharacterSprite.flipX = false;
+			transform.localScale = new Vector3(1, 1, 1);
 		}
 		else if (!IsDead && Input.GetKey(KeyCode.D)) {
 			IsMoving = true;
-			if (!IsWallRight) {
+			if (!IsWallLeft) {
 				ForceVector = new Vector2(Force, 0);
 				if (IsClimbing) {
 					IsClimbing = false;
@@ -96,7 +113,8 @@ public class CharacterMovement : MonoBehaviour {
 			else {
 				IsClimbing = true;
 			}
-			CharacterSprite.flipX = true;
+			//CharacterSprite.flipX = true;
+			transform.localScale = new Vector3(-1, 1, 1);
 		}
 		else {
 			IsMoving = false;
@@ -140,27 +158,32 @@ public class CharacterMovement : MonoBehaviour {
 		}
 		else if (Jump) {
 			Jump = false;
-			CharacterRigidbody.AddForce(ForceVector);
+			CharacterRigidbody.AddForce(JumpVector, ForceMode2D.Impulse);
 		}
 	}
 
 	private bool CheckGrounded() {
-		return (Physics2D.Raycast(GroundCheckRight.position, Vector2.down, GroundCheckDistance, 1<<8) || Physics2D.Raycast(GroundCheckLeft.position, Vector2.down, GroundCheckDistance, 1 << 8));
+		return (Physics2D.Raycast(GroundCheckRight.position, Vector2.down, GroundCheckDistance, 1 << 8) || Physics2D.Raycast(GroundCheckLeft.position, Vector2.down, GroundCheckDistance, 1 << 8));
 	}
 
 	private bool CheckWall() {
 		return CheckWallLeft() || CheckWallRight();
 	}
+
 	private bool CheckWallRight() {
 		return Physics2D.Raycast(WallCheckRightBottom.position, Vector2.right, WallCheckDistance, 1 << 8) || Physics2D.Raycast(WallCheckRightTop.position, Vector2.right, WallCheckDistance, 1 << 8);
     }
 
 	private bool CheckWallLeft() {
-		return Physics2D.Raycast(WallCheckLeftBottom.position, Vector2.left, WallCheckDistance, 1 << 8) || Physics2D.Raycast(WallCheckLeftTop.position, Vector2.left, WallCheckDistance, 1 << 8);
+		return Physics2D.Raycast(WallCheckLeftBottom.position, Vector2.left * transform.localScale.x, WallCheckDistance, 1 << 8) || Physics2D.Raycast(WallCheckLeftTop.position, Vector2.left * transform.localScale.x, WallCheckDistance, 1 << 8);
 	}
 
 	public void KillPlayer() {
 		IsDead = true;
 		CharacterAnimator.SetTrigger("Dead");
+	}
+
+	private void Attack() {
+		CharacterAnimator.SetTrigger("Attack");
 	}
 }
