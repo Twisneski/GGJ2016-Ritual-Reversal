@@ -19,7 +19,7 @@ public class PlayerSound : MonoBehaviour {
 	private void CheckCharacterAction() {
 
 		if (CharacterAnimator.GetBool("Moving") && CharacterAnimator.GetBool("Grounded") && !WalkingAudioSource.isPlaying) {
-			Debug.Log("Play Sound");
+			//Debug.Log("Play Sound");
 			WalkingAudioSource.Play();
 		}
 		else if(!CharacterAnimator.GetBool("Moving") || !CharacterAnimator.GetBool("Grounded")){
