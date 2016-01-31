@@ -32,6 +32,7 @@ public class BossSounds : MonoBehaviour {
 	public int NumberOfOrbsToCatch;
 	public FistMovement Left;
 	public FistMovement Right;
+	public RectTransformAdjuster FinalMenu;
 
 	// Use this for initialization
 	void Start () {
@@ -85,6 +86,7 @@ public class BossSounds : MonoBehaviour {
 		VictoryAudio.Play();
 		Left.MoveHands = false;
 		Right.MoveHands = false;
+		FinalMenu.StartMoveToIndex(1, null);
 	}
 
 	IEnumerator CameraShake() {
